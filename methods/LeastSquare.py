@@ -7,6 +7,8 @@ from methods.utils import get_algebraic_complement
 
 class LeastSquare(object):
     
+    __name__ = 'LSTM'
+    
     def __init__(self):
         self.solution = None
         self.delta = None
@@ -22,7 +24,7 @@ class LeastSquare(object):
         alg_matrix = get_algebraic_complement(self.A_T_mul_A)
         a_t_ksi = slar_object.A_matrix.T @ (np.ones(slar_object.A_matrix.shape[0]) * slar_object.noise_epselon * slar_object.A_matrix.shape[0])     
         self.delta = np.array([ alg_matrix[:,i] @ a_t_ksi for i in range(alg_matrix.shape[1])]) / np.linalg.det(self.A_T_mul_A)
-        self.delta = np.abs(self.intervals)
+        self.delta = np.abs(self.delta)
 
     def fit(self, slar_object):
         self.get_solution(slar_object)

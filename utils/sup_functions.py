@@ -1,3 +1,5 @@
+import numpy as np
+
 def random_walk(p):
     unif = np.random.uniform(0,1)
     if unif>=p:

@@ -6,30 +6,35 @@ from functools import reduce
 from methods.utils import get_algebraic_complement
 
 class CombinationLinearSystemSolver(object):
-    def __init__(self, det_eps=1e-7):
+    
+    __name__='CombinationLinearSystemSolver'
+    
+    def __init__(self, det_eps=1e-7, combinations_to_take=-1):
         self.solution = None
         self.delta = None
         self.error = None
         self.det_eps = 1e-7
+        self.combinations_to_take = combinations_to_take
         
-    def get_solo_solution(self, matrix, vector):
+    def get_solo_solution_delta(self, matrix, vector, epselon_vector):
         algebric_complement = get_algebraic_complement(matrix)
-        return vector@algebric_complement / np.linalg.det(matrix)
-    
-    def get_solo_interval(self, matrix, epselon_vector):
-        algebric_complement = get_algebraic_complement(matrix)
-        return epselon_vector@np.abs(algebric_complement) / abs(np.linalg.det(matrix))
+        solution = vector@algebric_complement / np.linalg.det(matrix)
+        delta = epselon_vector@np.abs(algebric_complement) / abs(np.linalg.det(matrix))
+        return solution, delta
     
     def fit(self, slar_object):
-        index_combinations = combinations(range(slar_object.m), slar_object.n)
+        index_combinations = list(combinations(range(slar_object.m), slar_object.n))
+        
+        combinations_to_take = min(len(index_combinations), self.combinations_to_take) if self.combinations_to_take>0 else len(index_combinations)
+        index_combinations = sorted(index_combinations, key=lambda idx: -np.abs(np.linalg.det(slar_object.A_matrix[idx,:])))
+        index_combinations = index_combinations[:combinations_to_take]
         
         left_ends = []
         right_ends = []
         for idx in index_combinations:
             idx = list(idx)
             if np.linalg.det(slar_object.A_matrix[idx,:]) > self.det_eps:
-                solution = self.get_solo_solution(slar_object.A_matrix[idx,:], slar_object.noised_b[idx])
-                delta = self.get_solo_interval(slar_object.A_matrix[idx,:], slar_object.random_noise[idx])
+                solution, delta = self.get_solo_solution_delta(slar_object.A_matrix[idx,:], slar_object.noised_b[idx], slar_object.random_noise[idx])
                 left_ends.append(solution - delta)
                 right_ends.append(solution + delta)
                 
@@ -39,5 +44,5 @@ class CombinationLinearSystemSolver(object):
         x_max = np.min(right_ends, axis=0)
         
         self.solution = (x_min + x_max)/2
-        self.delta = (x_max - x_min)/2
+        self.delta = abs((x_max - x_min)/2)
         self.error = np.linalg.norm(self.solution - slar_object.x_vector)
