@@ -67,7 +67,7 @@ class Experiment(object):
         
         return self.results
     
-    def visualise_experiment(self, num_samples_to_visualise=3):
+    def visualise_experiment(self, num_samples_to_visualise=3, colors=['yellow','green','red']):
         possible_params = set(self.grid_params.keys())
         for param in self.grid_params.keys():
             print('Plotting experiments with '+param)
@@ -79,7 +79,8 @@ class Experiment(object):
             for i in range(num_samples_to_visualise):
                 self.visualise_with_fixation(params_to_fix=list(fixed_params_values.keys()),
                                              fixed_values=[fixed_params_values[k][i] for k in fixed_params_values.keys()],
-                                             param_to_visual=param)
+                                             param_to_visual=param,
+                                             colors=colors)
                 
             print('\n'*5)
             
@@ -95,7 +96,7 @@ class Experiment(object):
             
         return result_dict
     
-    def visualise_with_fixation(self, params_to_fix, fixed_values, param_to_visual):
+    def visualise_with_fixation(self, params_to_fix, fixed_values, param_to_visual, colors=['yellow','green','red']):
         case = [self.results[x]==y for x,y in zip(params_to_fix,fixed_values)]
         case = reduce(lambda x,y: x & y, case)
 
@@ -104,9 +105,9 @@ class Experiment(object):
         plt.title('; '.join([str(x) + ' = ' + str(y) for x, y in zip(params_to_fix, fixed_values)]))
         plt.ylabel('error')
         plt.xlabel(param_to_visual)
-        for model in self.models:
+        for model, color in zip(self.models,colors):
             plt.plot(self.results.loc[case, param_to_visual],
-                     self.results.loc[case, model.__name__ + '_error'], label=model.__name__ + '_error')
+                     self.results.loc[case, model.__name__ + '_error'], label=model.__name__ + '_error', color=color)
 
         plt.legend(loc='upper left')
         plt.show()
