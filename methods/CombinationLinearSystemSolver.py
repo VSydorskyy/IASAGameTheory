@@ -13,6 +13,9 @@ class CombinationLinearSystemSolver(object):
         self.solution = None
         self.delta = None
         self.error = None
+        self.max_error_div_by_eps = None
+        self.min_error_div_by_eps = None
+        
         self.det_eps = 1e-7
         self.combinations_to_take = combinations_to_take
         
@@ -45,4 +48,8 @@ class CombinationLinearSystemSolver(object):
         
         self.solution = (x_min + x_max)/2
         self.delta = abs((x_max - x_min)/2)
+        
         self.error = np.linalg.norm(self.solution - slar_object.x_vector)
+        abs_scaled_error = np.abs(self.solution - slar_object.x_vector) / slar_object.noise_epselon
+        self.min_error_div_by_eps = min(abs_scaled_error)
+        self.max_error_div_by_eps = max(abs_scaled_error)

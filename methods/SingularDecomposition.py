@@ -11,6 +11,8 @@ class SingularDecomposition(object):
         self.solution = None
         self.delta = None
         self.error = None
+        self.max_error_div_by_eps = None
+        self.min_error_div_by_eps = None
         
     def fit(self, slar_object):
         U, Z, Vt = np.linalg.svd(slar_object.A_matrix)
@@ -18,4 +20,8 @@ class SingularDecomposition(object):
         self.solution = W @ slar_object.noised_b 
         self.delta = np.abs(W) @ (np.ones(slar_object.A_matrix.shape[0]) * slar_object.noise_epselon * slar_object.A_matrix.shape[0])
         self.delta = np.abs(self.delta)
+        
         self.error = np.linalg.norm(self.solution - slar_object.x_vector)
+        abs_scaled_error = np.abs(self.solution - slar_object.x_vector) / slar_object.noise_epselon
+        self.min_error_div_by_eps = min(abs_scaled_error)
+        self.max_error_div_by_eps = max(abs_scaled_error)

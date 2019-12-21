@@ -13,16 +13,23 @@ class LeastSquare(object):
         self.solution = None
         self.delta = None
         self.error = None
+        self.max_error_div_by_eps = None
+        self.min_error_div_by_eps = None
+        
         self.A_T_mul_A = None
         
     def get_solution(self, slar_object):
         self.A_T_mul_A = slar_object.A_matrix.T @ slar_object.A_matrix
         self.solution = (np.linalg.inv(self.A_T_mul_A) @ slar_object.A_matrix.T) @ slar_object.noised_b
+        
         self.error = np.linalg.norm(self.solution - slar_object.x_vector)
+        abs_scaled_error = np.abs(self.solution - slar_object.x_vector) / slar_object.noise_epselon
+        self.min_error_div_by_eps = min(abs_scaled_error)
+        self.max_error_div_by_eps = max(abs_scaled_error)
     
     def get_delta(self, slar_object):
         alg_matrix = get_algebraic_complement(self.A_T_mul_A)
-        a_t_ksi = slar_object.A_matrix.T @ (np.ones(slar_object.A_matrix.shape[0]) * slar_object.noise_epselon * slar_object.A_matrix.shape[0])     
+        a_t_ksi = slar_object.A_matrix.T @ (np.ones(slar_object.A_matrix.shape[0]) * slar_object.noise_epselon * slar_object.A_matrix.shape[0])
         self.delta = np.array([ alg_matrix[:,i] @ a_t_ksi for i in range(alg_matrix.shape[1])]) / np.linalg.det(self.A_T_mul_A)
         self.delta = np.abs(self.delta)
 

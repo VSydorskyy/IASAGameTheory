@@ -31,6 +31,8 @@ class Experiment(object):
         experiment_results['REAL_COND'] = []
         for model in self.models:
             experiment_results[model.__name__ + '_error'] = []
+            experiment_results[model.__name__ + '_min_error_div_by_eps'] = []
+            experiment_results[model.__name__ + '_max_error_div_by_eps'] = []
             
         number_of_itters = reduce(lambda x,y: x*y, [len(self.grid_params[k]) for k in self.grid_params.keys()])
         for m, eps, dist, c in tqdm(itertools.product(self.grid_params['M'], 
@@ -48,7 +50,7 @@ class Experiment(object):
                 accumulate_dict[model.__name__] = np.array(accumulate_dict[model.__name__]).mean(axis=0)
 
             if verbose:
-                print('M: {}, EPSILON: {}, Distribution: {}, Cond: {}'.format(m, eps, dist, accumulate_dict[self.models[0].__name__][-1]))
+                print('M: {}, EPSILON: {}, Distribution: {}, Cond: {}'.format(m, eps, dist, accumulate_dict[self.models[0].__name__][3]))
                 for model in self.models:
                     print(model.__name__)
                     print(pd.DataFrame({'solution':accumulate_dict[model.__name__][0], 'delta':accumulate_dict[model.__name__][1], 'real_value':self.x_vector}))
@@ -58,10 +60,12 @@ class Experiment(object):
             experiment_results['M'].append(m)
             experiment_results['EPSILONS'].append(eps)
             experiment_results['DISTRIBUTIONS'].append(dist)
-            experiment_results['REAL_COND'].append(accumulate_dict[self.models[0].__name__][-1])
+            experiment_results['REAL_COND'].append(accumulate_dict[self.models[0].__name__][3])
             experiment_results['CONDS'].append(c)
             for model in self.models:
                 experiment_results[model.__name__+'_error'].append(accumulate_dict[model.__name__][2])
+                experiment_results[model.__name__+'_min_error_div_by_eps'].append(accumulate_dict[model.__name__][4])
+                experiment_results[model.__name__+'_max_error_div_by_eps'].append(accumulate_dict[model.__name__][5])
             
         self.results = pd.DataFrame(experiment_results)
         
@@ -92,7 +96,9 @@ class Experiment(object):
                                      matrix_abs_limit=self.matrix_abs_limit)
         for model in self.models:
             model.fit(slar)
-            result_dict[model.__name__].append([model.solution, model.delta, model.error, np.linalg.cond(slar.A_matrix)])
+            result_dict[model.__name__].append([model.solution, model.delta, model.error,  
+                                                np.linalg.cond(slar.A_matrix),
+                                                model.min_error_div_by_eps, model.max_error_div_by_eps])
             
         return result_dict
     
@@ -100,14 +106,23 @@ class Experiment(object):
         case = [self.results[x]==y for x,y in zip(params_to_fix,fixed_values)]
         case = reduce(lambda x,y: x & y, case)
 
-        plt.figure(figsize=(10,5))
+        self.visualise_certain_error('error', params_to_fix, fixed_values, param_to_visual, case, colors)
+        self.visualise_certain_error('min_error_div_by_eps', params_to_fix, fixed_values, param_to_visual, case, colors)
+        self.visualise_certain_error('max_error_div_by_eps', params_to_fix, fixed_values, param_to_visual, case, colors)
 
+        
+        
+    def visualise_certain_error(self, error_name, params_to_fix, fixed_values, param_to_visual, case, colors):
+        plt.figure(figsize=(10,5))
         plt.title('; '.join([str(x) + ' = ' + str(y) for x, y in zip(params_to_fix, fixed_values)]))
-        plt.ylabel('error')
+        plt.ylabel(error_name)
         plt.xlabel(param_to_visual)
         for model, color in zip(self.models,colors):
             plt.plot(self.results.loc[case, param_to_visual],
-                     self.results.loc[case, model.__name__ + '_error'], label=model.__name__ + '_error', color=color)
+                     self.results.loc[case, model.__name__ + '_' + error_name], 
+                                      label=model.__name__ + '_' + error_name, color=color)
 
         plt.legend(loc='upper left')
         plt.show()
+        
+        
